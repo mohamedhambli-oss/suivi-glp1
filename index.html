@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi Mounjaro — Espace pharmacie & patient</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F6F4;--surface:#FFFFFF;--primary:#0E6B5C;--primary-dark:#0A4F44;
+    --primary-soft:#E3F0EC;--ink:#16211E;--muted:#5E6B66;--line:#E2E8E4;
+    --alert:#B45309;--alert-soft:#FDF2E3;--danger:#B91C1C;--danger-soft:#FBE9E9;
+    --good:#0E6B5C;--good-soft:#E3F0EC;--shadow:0 1px 2px rgba(16,33,29,.04),0 8px 24px rgba(16,33,29,.05);
+  }
+  *{box-sizing:border-box}html,body{margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{font-family:'Inter Tight',sans-serif;margin:0;letter-spacing:-.01em}
+  .tnum{font-variant-numeric:tabular-nums}
+  button{font-family:inherit;cursor:pointer;border:none;background:none}
+  input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+  a{color:var(--primary)}
+  header.app{background:var(--primary-dark);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:20}
+  header.app .logo{width:34px;height:34px;border-radius:8px;background:#fff;color:var(--primary-dark);display:grid;place-items:center;font-family:'Inter Tight';font-weight:700;font-size:20px;flex:none}
+  header.app h1{font-size:17px;font-weight:600;line-height:1.15}
+  header.app .sub{font-size:12px;opacity:.78;font-weight:400}
+  header.app .spacer{flex:1}
+  .role-badge{font-size:11px;font-weight:600;background:rgba(255,255,255,.16);padding:4px 10px;border-radius:999px}
+  .ghost-btn{color:#fff;border:1px solid rgba(255,255,255,.3);padding:7px 12px;border-radius:8px;font-size:13px;font-weight:500}
+  .ghost-btn:hover{background:rgba(255,255,255,.1)}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px}
+  @media(max-width:640px){.wrap{padding:16px}}
+  .btn{background:var(--primary);color:#fff;padding:9px 16px;border-radius:9px;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{background:var(--primary-dark)}
+  .btn.sec{background:var(--primary-soft);color:var(--primary-dark)}
+  .btn.sec:hover{background:#d3e6e0}
+  .btn.warn{background:var(--alert)}.btn.sm{padding:6px 11px;font-size:13px}
+  .btn.danger{background:#fff;color:var(--danger);border:1px solid var(--danger-soft)}
+  .btn.danger:hover{background:var(--danger-soft)}
+  .btn.block{width:100%;justify-content:center;padding:12px}
+  .btn:disabled{opacity:.5;cursor:default}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  .list-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap}
+  .search{position:relative;flex:1;max-width:340px}
+  .search input{width:100%;padding:10px 12px 10px 36px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:.45}
+  .client-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .client-card{padding:16px 18px;cursor:pointer;transition:.12s;display:flex;flex-direction:column;gap:10px}
+  .client-card:hover{border-color:var(--primary);transform:translateY(-1px)}
+  .client-card .name{font-family:'Inter Tight';font-weight:600;font-size:16px}
+  .client-card .meta{font-size:12.5px;color:var(--muted)}
+  .pill-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:2px}
+  .pill{font-size:11.5px;padding:3px 9px;border-radius:999px;background:var(--primary-soft);color:var(--primary-dark);font-weight:600}
+  .pill.delta-down{background:var(--good-soft);color:var(--good)}
+  .pill.delta-up{background:var(--danger-soft);color:var(--danger)}
+  .pill.flat{background:#eef0ef;color:var(--muted)}
+  .pill.plateau{background:var(--alert-soft);color:#7c3f06}
+  .empty{text-align:center;padding:60px 20px;color:var(--muted)}
+  .empty svg{opacity:.3;margin-bottom:14px}
+  .back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13.5px;font-weight:500;margin-bottom:14px}
+  .back:hover{color:var(--primary)}
+  .detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+  .detail-head .name{font-size:24px;font-weight:700}
+  .detail-head .info{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.7}
+  .detail-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:18px}
+  .stat{padding:14px 16px}
+  .stat .label{font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+  .stat .val{font-family:'Inter Tight';font-weight:700;font-size:26px;margin-top:4px;line-height:1}
+  .stat .val small{font-size:14px;font-weight:600;color:var(--muted)}
+  .stat .ann{font-size:12px;margin-top:5px;font-weight:600}
+  .ann.down{color:var(--good)}.ann.up{color:var(--danger)}.ann.neutral{color:var(--muted)}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+  @media(max-width:760px){.charts{grid-template-columns:1fr}.stats .stat .val{font-size:22px}}
+  .chart-card{padding:16px}.chart-card h3{font-size:14px;margin-bottom:10px;color:var(--muted);font-weight:600}
+  .chart-wrap{position:relative;height:200px}
+  .alert-banner{display:flex;gap:10px;padding:12px 14px;border-radius:11px;margin-bottom:14px;font-size:13.5px;align-items:flex-start}
+  .alert-banner.amber{background:var(--alert-soft);color:#7c3f06;border:1px solid #f6dcb8}
+  .alert-banner.red{background:var(--danger-soft);color:#7f1d1d;border:1px solid #f3c9c9}
+  .alert-banner.info{background:var(--primary-soft);color:var(--primary-dark);border:1px solid #cfe6df}
+  .alert-banner svg{flex:none;margin-top:1px}.alert-banner b{font-weight:700}
+  .section-title{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;margin:22px 0 10px}
+  .consult{padding:16px 18px;margin-bottom:12px}
+  .consult-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .consult-date{font-family:'Inter Tight';font-weight:600;font-size:15px}
+  .consult-poids{font-variant-numeric:tabular-nums;font-weight:600}
+  .consult-body{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:600px){.consult-body{grid-template-columns:1fr}}
+  .kv{font-size:13.5px}
+  .kv .k{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;font-weight:600;margin-bottom:2px}
+  .tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:6px;background:#eef0ef;margin:2px 4px 2px 0}
+  .tag.leger{background:#eef0ef;color:var(--muted)}
+  .tag.modere{background:var(--alert-soft);color:#7c3f06}
+  .tag.severe{background:var(--danger-soft);color:var(--danger);font-weight:600}
+  .tag.compl{background:var(--primary-soft);color:var(--primary-dark)}
+  .tag.self{background:#eaf1fb;color:#2857a4}
+  .consult-actions{display:flex;gap:6px}
+  .icon-btn{padding:5px;border-radius:7px;color:var(--muted)}.icon-btn:hover{background:#f0f2f1;color:var(--ink)}
+  .overlay{position:fixed;inset:0;background:rgba(16,33,29,.45);z-index:40;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto}
+  .modal{background:#fff;border-radius:16px;max-width:680px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);margin:auto}
+  .modal-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;border-radius:16px 16px 0 0;z-index:2}
+  .modal-head h2{font-size:18px}.modal-body{padding:22px}
+  .modal-foot{padding:16px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:#fff;border-radius:0 0 16px 16px}
+  .close{font-size:22px;color:var(--muted);line-height:1;padding:4px 8px;border-radius:8px}.close:hover{background:#f0f2f1}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  @media(max-width:560px){.grid2,.grid3{grid-template-columns:1fr}}
+  label.fl{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:5px}
+  .req::after{content:" *";color:var(--danger)}
+  input.f,select.f,textarea.f{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;outline:none}
+  input.f:focus,select.f:focus,textarea.f:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  textarea.f{resize:vertical;min-height:64px}.field{margin-bottom:14px}
+  .sub-label{font-size:12px;color:var(--muted);margin-top:3px}
+  .effets-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}@media(max-width:560px){.effets-grid{grid-template-columns:1fr}}
+  .effet-row{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:9px;padding:6px 8px}
+  .effet-row span{flex:1;font-size:13px}
+  .effet-row select{border:1px solid var(--line);border-radius:7px;padding:4px 6px;font-size:12px;background:#fff}
+  .chk-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}@media(max-width:560px){.chk-grid{grid-template-columns:1fr}}
+  .chk{display:flex;align-items:flex-start;gap:8px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;cursor:pointer;font-size:13.5px;transition:.1s}
+  .chk:hover{border-color:var(--primary)}.chk input{margin-top:2px;accent-color:var(--primary);width:16px;height:16px}
+  .chk.on{background:var(--primary-soft);border-color:var(--primary)}
+  .chk .c-name{font-weight:500}.chk .c-hint{display:block;font-size:11.5px;color:var(--muted)}
+  .radio-row{display:flex;gap:10px}
+  .radio-row label{display:flex;align-items:center;gap:6px;font-size:14px;border:1px solid var(--line);border-radius:9px;padding:8px 14px;cursor:pointer;flex:1;justify-content:center}
+  .radio-row input{accent-color:var(--primary)}
+  .radio-row label.on{background:var(--primary-soft);border-color:var(--primary);font-weight:600}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--ink);color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;z-index:60;transition:.3s;opacity:0;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:90%;text-align:center}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .hidden{display:none!important}
+  .footer-note{font-size:12px;color:var(--muted);text-align:center;padding:24px 16px;line-height:1.7}
+  .footer-note .rgpd{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-top:8px;max-width:680px;text-align:left}
+  /* Patient blocks */
+  .p-card{padding:18px 20px;margin-bottom:14px}
+  .p-card h3{font-size:16px;margin-bottom:4px}
+  .p-card .lead{font-size:13px;color:var(--muted);margin:0 0 14px}
+  .weigh-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+  .weigh-row .field{margin-bottom:0;flex:1;min-width:120px}
+  .bilan-box{border-radius:12px;padding:16px;font-size:14px;line-height:1.6}
+  .bilan-box.good{background:var(--good-soft);border:1px solid #cfe6df}
+  .bilan-box.plateau{background:var(--alert-soft);border:1px solid #f6dcb8}
+  .bilan-box.gain{background:var(--danger-soft);border:1px solid #f3c9c9}
+  .bilan-box.info{background:#f3f5f4;border:1px solid var(--line)}
+  .bilan-box .bt{font-family:'Inter Tight';font-weight:700;font-size:15px;display:block;margin-bottom:4px}
+  .solution{border:1px solid var(--line);border-radius:11px;padding:12px 14px;margin-top:10px;background:#fbfcfb}
+  .solution .se{font-family:'Inter Tight';font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px}
+  .solution p{margin:6px 0 0;font-size:13.5px;color:#33403b}
+  .solution .sup{margin-top:8px}
+  details.advice{border:1px solid var(--line);border-radius:12px;padding:0;margin-bottom:10px;overflow:hidden;background:#fff}
+  details.advice summary{padding:14px 16px;font-family:'Inter Tight';font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px}
+  details.advice summary::-webkit-details-marker{display:none}
+  details.advice summary .chev{margin-left:auto;transition:.2s;color:var(--muted)}
+  details.advice[open] summary .chev{transform:rotate(90deg)}
+  details.advice .ac{padding:0 16px 16px;font-size:14px;line-height:1.65}
+  details.advice .ac ul{margin:6px 0;padding-left:18px}details.advice .ac li{margin-bottom:6px}
+  .spinner{width:38px;height:38px;border:3px solid var(--primary-soft);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:80px auto}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  /* Auth */
+  .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(120% 80% at 50% 0%,#0e6b5c 0%,#0a4f44 60%,#073a32 100%)}
+  .auth-card{background:#fff;border-radius:18px;max-width:400px;width:100%;padding:30px;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+  .auth-logo{width:48px;height:48px;border-radius:12px;background:var(--primary-soft);color:var(--primary-dark);display:grid;place-items:center;font-family:'Inter Tight';font-weight:700;font-size:26px;margin-bottom:16px}
+  .auth-card h2{font-size:22px;margin-bottom:4px}
+  .auth-card p.lead{color:var(--muted);font-size:14px;margin:0 0 20px}
+  .auth-switch{text-align:center;font-size:13px;color:var(--muted);margin-top:16px}
+  .auth-switch button{color:var(--primary);font-weight:600}
+  .auth-err{background:var(--danger-soft);color:var(--danger);font-size:13px;padding:9px 12px;border-radius:9px;margin-bottom:14px}
+  .cred-box{background:var(--primary-soft);border:1px solid #cfe6df;border-radius:11px;padding:14px;margin-top:8px;font-size:14px}
+  .cred-box .row{display:flex;justify-content:space-between;padding:4px 0;font-variant-numeric:tabular-nums}
+  .cred-box .row b{font-family:'Inter Tight'}
+  @media print{header.app,.detail-actions,.add-consult-btn,.back,.footer-note .rgpd,.no-print{display:none!important}.wrap{max-width:100%;padding:0}.card,.p-card{box-shadow:none}}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen"><div class="spinner"></div></div>
+
+<!-- AUTH -->
+<div id="authScreen" class="auth-wrap hidden">
+  <div class="auth-card">
+    <div class="auth-logo">℞</div>
+    <h2 id="authTitle">Connexion</h2>
+    <p class="lead" id="authLead">Espace de suivi Mounjaro — Pharmacie Raymond Poincaré</p>
+    <div id="authErr" class="auth-err hidden"></div>
+    <div class="field"><label class="fl">Email</label><input class="f" id="au_email" type="email" autocomplete="email"></div>
+    <div class="field"><label class="fl">Mot de passe</label><input class="f" id="au_pass" type="password" autocomplete="current-password"></div>
+    <button class="btn block" id="au_submit" onclick="doAuth()">Se connecter</button>
+    <div style="text-align:center;margin-top:10px"><button style="color:var(--muted);font-size:13px" onclick="resetPass()">Mot de passe oublié</button></div>
+    <div class="auth-switch"><span id="au_switchTxt">Pas encore de compte ?</span> <button id="au_switchBtn" onclick="toggleAuthMode()">Créer un compte</button></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appScreen" class="hidden">
+  <header class="app">
+    <div class="logo">℞</div>
+    <div><h1>Suivi Mounjaro</h1><div class="sub">Pharmacie Raymond Poincaré</div></div>
+    <div class="spacer"></div>
+    <span class="role-badge" id="roleBadge"></span>
+    <button class="ghost-btn no-print" onclick="logout()">Déconnexion</button>
+  </header>
+  <div class="wrap">
+    <div id="unlinkedView" class="hidden">
+      <div class="card" style="padding:28px;max-width:520px;margin:40px auto;text-align:center">
+        <h2 style="margin-bottom:8px">Compte non rattaché</h2>
+        <p style="color:var(--muted)">Ce compte n'est lié à aucune fiche patient et n'a pas les droits pharmacie. Si vous êtes patient, votre fiche doit être créée par la pharmacie. Si vous êtes l'équipe, ajoutez votre UID à la collection <b>staff</b> (voir guide).</p>
+        <p style="color:var(--muted);font-size:12px;margin-top:14px">Votre UID : <b id="myUid" class="tnum"></b></p>
+      </div>
+    </div>
+    <div id="listView" class="hidden">
+      <div class="list-head">
+        <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+          <input type="text" id="searchInput" placeholder="Rechercher un patient…" oninput="renderList()"></div>
+        <button class="btn" onclick="openClientModal()">+ Nouveau patient</button>
+      </div>
+      <div id="clientGrid" class="client-grid"></div>
+    </div>
+    <div id="detailView" class="hidden"></div>
+    <div class="footer-note no-print">
+      Outil d'accompagnement — ne se substitue pas au suivi médical. Toute adaptation de dose relève du médecin.
+      <div class="rgpd" id="rgpdNote"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL PATIENT -->
+<div class="overlay hidden" id="clientModal">
+  <div class="modal">
+    <div class="modal-head"><h2 id="clientModalTitle">Nouveau patient</h2><button class="close" onclick="closeModal('clientModal')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="c_id">
+      <div class="grid2">
+        <div class="field"><label class="fl req">Nom</label><input class="f" id="c_nom"></div>
+        <div class="field"><label class="fl req">Prénom</label><input class="f" id="c_prenom"></div>
+      </div>
+      <div id="c_accessBlock">
+        <div class="grid2">
+          <div class="field"><label class="fl req">Email (= identifiant patient)</label><input class="f" id="c_email" type="email" placeholder="patient@email.fr"></div>
+          <div class="field"><label class="fl">Téléphone</label><input class="f" id="c_tel"></div>
+        </div>
+        <div class="alert-banner info" style="margin-bottom:14px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <span>Un accès patient sera créé avec cet email. Un mot de passe provisoire s'affichera à lui donner.</span>
+        </div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label class="fl">Date de naissance</label><input class="f" id="c_naissance" type="date"></div>
+        <div class="field"><label class="fl req">Sexe</label><select class="f" id="c_sexe"><option value="">—</option><option value="F">Femme</option><option value="H">Homme</option></select></div>
+        <div class="field"><label class="fl req">Taille (cm)</label><input class="f" id="c_taille" type="number" placeholder="170"></div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label class="fl">Médecin prescripteur</label><input class="f" id="c_medecin"></div>
+        <div class="field"><label class="fl req">Début de traitement</label><input class="f" id="c_debut" type="date"></div>
+        <div class="field"><label class="fl req">Poids initial (kg)</label><input class="f" id="c_poids0" type="number" step="0.1" placeholder="92.5"></div>
+      </div>
+      <div class="field" style="max-width:50%"><label class="fl">Objectif poids (kg)</label><input class="f" id="c_objectif" type="number" step="0.1" placeholder="optionnel"></div>
+      <div class="field"><label class="chk"><input type="checkbox" id="c_consent">
+        <span><span class="c-name">Consentement recueilli</span><span class="c-hint">Le patient consent au suivi et à l'enregistrement de ses données de santé.</span></span></label></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn sec" onclick="closeModal('clientModal')">Annuler</button>
+      <button class="btn" id="c_saveBtn" onclick="saveClient()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CRÉDENTIELS -->
+<div class="overlay hidden" id="credModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head"><h2>Accès patient créé</h2><button class="close" onclick="closeModal('credModal')">×</button></div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:14px;margin-top:0">Communiquez ces identifiants au patient. Il pourra changer son mot de passe.</p>
+      <div class="cred-box"><div class="row"><span>Email</span><b id="cred_email"></b></div><div class="row"><span>Mot de passe</span><b id="cred_pass"></b></div></div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:0">⚠ Ce mot de passe ne sera plus affiché.</p>
+    </div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal('credModal')">J'ai noté</button></div>
+  </div>
+</div>
+
+<!-- MODAL CONSULTATION (pharmacie) -->
+<div class="overlay hidden" id="newConsultModal">
+  <div class="modal">
+    <div class="modal-head"><h2 id="consultModalTitle">Nouvelle consultation</h2><button class="close" onclick="closeModal('newConsultModal')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="cs_clientId"><input type="hidden" id="cs_id">
+      <div class="grid3">
+        <div class="field"><label class="fl req">Date</label><input class="f" id="cs_date" type="date"></div>
+        <div class="field"><label class="fl req">Poids (kg)</label><input class="f" id="cs_poids" type="number" step="0.1"></div>
+        <div class="field"><label class="fl">Tour de taille (cm)</label><input class="f" id="cs_taille"></div>
+      </div>
+      <div class="field"><label class="fl">Dose actuelle</label>
+        <select class="f" id="cs_dose"><option value="">—</option><option>2,5 mg</option><option>5 mg</option><option>7,5 mg</option><option>10 mg</option><option>12,5 mg</option><option>15 mg</option></select></div>
+      <div class="section-title" style="margin-top:18px">Effets secondaires</div>
+      <div class="sub-label" style="margin:-6px 0 10px">Laissez sur « Aucun » si non concerné.</div>
+      <div class="effets-grid" id="cs_effets"></div>
+      <div class="section-title" style="margin-top:18px">Compléments alimentaires</div>
+      <div class="sub-label" style="margin:-6px 0 10px">Cochez ceux que le patient a pris / repartis avec.</div>
+      <div class="chk-grid" id="cs_complements"></div>
+      <div class="section-title" style="margin-top:18px">Opération / intervention</div>
+      <div class="field">
+        <div class="radio-row" id="cs_opRow">
+          <label><input type="radio" name="cs_op" value="non" checked onchange="toggleOp()"> Aucune prévue</label>
+          <label><input type="radio" name="cs_op" value="oui" onchange="toggleOp()"> Intervention prévue</label>
+        </div>
+        <div id="cs_opDetailWrap" class="hidden" style="margin-top:10px">
+          <input class="f" id="cs_opDetail" placeholder="Type d'intervention + date prévue">
+          <div class="alert-banner amber" style="margin-top:10px;margin-bottom:0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+            <span>Tirzépatide = vidange gastrique ralentie : risque d'inhalation sous anesthésie. <b>Informer l'anesthésiste.</b></span>
+          </div>
+        </div>
+      </div>
+      <div class="section-title" style="margin-top:18px">Mode de vie</div>
+      <div class="field"><label class="fl">Bilan alimentaire</label><textarea class="f" id="cs_bilan"></textarea></div>
+      <div class="field"><label class="fl">Hygiène de vie</label><textarea class="f" id="cs_hygiene"></textarea></div>
+      <div class="field"><label class="fl">Activité physique</label>
+        <div class="radio-row" id="cs_sportRow">
+          <label><input type="radio" name="cs_sport" value="non" checked onchange="toggleSport()"> Non</label>
+          <label><input type="radio" name="cs_sport" value="oui" onchange="toggleSport()"> Oui</label>
+        </div>
+        <div id="cs_sportDetailWrap" class="hidden grid2" style="margin-top:10px">
+          <input class="f" id="cs_sportFreq" placeholder="Fréquence (ex : 2×/sem)"><input class="f" id="cs_sportType" placeholder="Type (marche, muscu…)">
+        </div>
+      </div>
+      <div class="field"><label class="fl">Notes du pharmacien</label><textarea class="f" id="cs_notes"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn sec" onclick="closeModal('newConsultModal')">Annuler</button>
+      <button class="btn" id="cs_saveBtn" onclick="saveConsult()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* ============================================================
+   CONFIG FIREBASE — À REMPLACER (Firestore en région europe-west pour le volet HDS)
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyAsk-zLJ4rbbG6uBqzeV1hTN668L2dYkIA",
+  authDomain: "suivi-mounjaro.firebaseapp.com",
+  projectId: "suivi-mounjaro",
+  storageBucket: "suivi-mounjaro.firebasestorage.app",
+  messagingSenderId: "1090282993247",
+  appId: "1:1090282993247:web:54a85b3d6b647bc1df0dea",
+  measurementId: "G-NTJ2GXFRK1"
+};
+
+import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs,
+  query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ---------- Constantes ---------- */
+const EFFETS=['Nausées','Vomissements','Diarrhée','Constipation','Reflux / brûlures','Fatigue','Maux de tête','Douleurs abdominales','Perte d\'appétit','Étourdissements'];
+const COMPLEMENTS=[
+  {n:'Protéines (whey/végétale)',h:'préserve la masse musculaire'},{n:'Fibres',h:'transit / constipation'},
+  {n:'Probiotiques',h:'confort digestif'},{n:'Multivitamines',h:'apports réduits'},{n:'Vitamine D',h:''},
+  {n:'Magnésium',h:'crampes / fatigue'},{n:'Oméga-3',h:''},{n:'Électrolytes',h:'hydratation'},
+  {n:'Gingembre',h:'anti-nausée'},{n:'Collagène',h:'peau / cheveux'}];
+
+// Solutions patient par effet : conseil pratique + compléments pertinents
+const SOLUTIONS={
+  'Nausées':{tip:'Fractionne en petits repas, mange lentement, évite le gras/frit et les odeurs fortes. Ne t\'allonge pas juste après manger. Le gingembre (tisane, gélules) aide souvent.',sup:['Gingembre','Électrolytes']},
+  'Vomissements':{tip:'Bois par petites gorgées régulières pour ne pas te déshydrater. Reprends une alimentation légère (bouillon, compote). Si tu n\'arrives plus à boire, contacte ton médecin.',sup:['Électrolytes']},
+  'Diarrhée':{tip:'Hydrate-toi bien, privilégie riz/banane/carotte cuite, évite le gras et les produits laitiers si ça empire. Les probiotiques peuvent aider.',sup:['Probiotiques','Électrolytes']},
+  'Constipation':{tip:'Augmente les fibres (légumes, fruits, céréales complètes), bois davantage et bouge un peu chaque jour. Le magnésium aide au transit.',sup:['Fibres','Magnésium']},
+  'Reflux / brûlures':{tip:'Repas plus petits, évite épices/gras/café le soir, ne t\'allonge pas après manger, surélève la tête du lit. Un antiacide peut dépanner — demande conseil.',sup:[]},
+  'Fatigue':{tip:'Veille à un apport suffisant en protéines et à bien t\'hydrater, garde un bon sommeil. Une fatigue marquée mérite d\'en parler (bilan éventuel).',sup:['Multivitamines','Vitamine D','Magnésium']},
+  'Maux de tête':{tip:'Souvent liés au manque d\'eau ou à des repas sautés : hydrate-toi et garde des repas réguliers, même légers.',sup:['Électrolytes']},
+  'Douleurs abdominales':{tip:'Repas légers et fractionnés. ⚠ Une douleur intense, qui dure ou qui irradie dans le dos doit faire consulter rapidement (sans attendre).',sup:[]},
+  'Perte d\'appétit':{tip:'C\'est attendu avec le traitement. Ne saute pas les repas : priorise les protéines et un peu de fibres à chaque prise, en petite quantité.',sup:['Protéines (whey/végétale)']},
+  'Étourdissements':{tip:'Lève-toi doucement, hydrate-toi bien. Si tu es diabétique, surveille ta glycémie (risque d\'hypo).',sup:['Électrolytes']}
+};
+
+/* ---------- État ---------- */
+let me=null, isStaff=false, myPatient=null, authMode='login';
+let clients=[], currentClient=null, currentConsults=[], currentLogs=[];
+let chartPoids=null, chartIMC=null;
+
+/* ---------- Utils ---------- */
+const $=id=>document.getElementById(id);
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
+function show(id){$(id).classList.remove('hidden')} function hide(id){$(id).classList.add('hidden')}
+function fmtDate(s){if(!s)return'—';const d=new Date(s);return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}
+function ageOf(s){if(!s)return null;const d=new Date(s),n=new Date();let a=n.getFullYear()-d.getFullYear();if(n<new Date(n.getFullYear(),d.getMonth(),d.getDate()))a--;return a}
+function imc(p,t){if(!p||!t)return null;const m=t/100;return p/(m*m)}
+function esc(s){return(s||'').toString().replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
+function genPass(){const c='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let p='';for(let i=0;i<8;i++)p+=c[Math.floor(Math.random()*c.length)];return p}
+const DAY=86400000;
+
+// Timeline poids fusionnée : début + consultations (pharmacie) + pesées patient
+function timeline(c,consults,logs){
+  const pts=[{date:c.debut,poids:c.poids0,src:'debut'}];
+  (consults||[]).forEach(x=>{if(x.poids!=null)pts.push({date:x.date,poids:x.poids,src:'pharma'})});
+  (logs||[]).forEach(x=>{if(x.type==='poids'&&x.poids!=null)pts.push({date:x.date,poids:x.poids,src:'patient'})});
+  return pts.filter(p=>p.date).sort((a,b)=>new Date(a.date)-new Date(b.date));
+}
+function currentW(tl){return tl.length?tl[tl.length-1].poids:null}
+
+// Analyse mensuelle : compare le poids actuel à celui d'~28 j avant
+function analyseMois(tl){
+  if(tl.length<2)return{status:'info',msg:'Continue à noter ton poids chaque semaine pour voir ton évolution.'};
+  const last=tl[tl.length-1];
+  const spanDays=(new Date(last.date)-new Date(tl[0].date))/DAY;
+  if(spanDays<21)return{status:'info',msg:'Encore un peu de recul nécessaire (environ un mois) pour un premier bilan fiable.'};
+  const target=new Date(last.date).getTime()-28*DAY;
+  // point le plus proche d'il y a 28 j, en restant au moins ~18 j avant
+  let ref=null,best=1e15;
+  for(const p of tl){
+    if(p===last)continue;
+    const dd=Math.abs(new Date(p.date).getTime()-target);
+    const before=(new Date(last.date)-new Date(p.date))/DAY;
+    if(before>=18 && dd<best){best=dd;ref=p;}
+  }
+  if(!ref)return{status:'info',msg:'Encore un peu de recul nécessaire pour un bilan mensuel.'};
+  const delta=last.poids-ref.poids;
+  if(delta<=-1)return{status:'good',delta,msg:`Tu as perdu ${Math.abs(delta).toFixed(1)} kg sur les 4 dernières semaines. Belle régularité — continue sur ta lancée.`};
+  if(delta>=1)return{status:'gain',delta,msg:`Ton poids a augmenté d'environ ${delta.toFixed(1)} kg ce mois-ci. Ça peut arriver — reprends les bases (protéines, hydratation, activité) et parles-en à ton pharmacien.`};
+  return{status:'plateau',delta,msg:`Ton poids est quasiment stable depuis 4 semaines (${delta>0?'+':''}${delta.toFixed(1)} kg). Les paliers sont normaux et fréquents avec ce traitement. N'ajuste jamais ta dose toi-même : note-le et parles-en à ton pharmacien ou ton médecin lors de ta prochaine visite — c'est le médecin qui décide d'une éventuelle adaptation.`};
+}
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){me=null;hide('loadingScreen');hide('appScreen');show('authScreen');return;}
+  me=user; show('loadingScreen'); hide('authScreen');
+  const staffSnap=await getDoc(doc(db,'staff',user.uid));
+  isStaff=staffSnap.exists(); myPatient=null;
+  if(!isStaff){const p=await getDoc(doc(db,'patients',user.uid));if(p.exists())myPatient={id:user.uid,...p.data()};}
+  hide('loadingScreen'); show('appScreen');
+  $('rgpdNote').innerHTML='<b>⚠ Données de santé.</b> Hébergement à configurer en conformité HDS (région EEE + avenant) avant usage réel. Consentement patient obligatoire.';
+  if(isStaff){$('roleBadge').textContent='Pharmacie';hide('unlinkedView');hide('detailView');show('listView');await loadClients();}
+  else if(myPatient){$('roleBadge').textContent='Mon suivi';hide('unlinkedView');hide('listView');await openDetail(myPatient.id);}
+  else{$('roleBadge').textContent='—';hide('listView');hide('detailView');show('unlinkedView');$('myUid').textContent=user.uid;}
+});
+function showAuthErr(m){const e=$('authErr');e.textContent=m;e.classList.remove('hidden')}
+window.toggleAuthMode=function(){
+  authMode=authMode==='login'?'signup':'login'; $('authErr').classList.add('hidden');
+  const s=authMode==='signup';
+  $('authTitle').textContent=s?'Créer un compte':'Connexion';
+  $('au_submit').textContent=s?'Créer le compte':'Se connecter';
+  $('au_switchTxt').textContent=s?'Déjà un compte ?':'Pas encore de compte ?';
+  $('au_switchBtn').textContent=s?'Se connecter':'Créer un compte';
+};
+window.doAuth=async function(){
+  const email=$('au_email').value.trim(),pass=$('au_pass').value;
+  if(!email||!pass){showAuthErr('Email et mot de passe requis');return}
+  $('au_submit').disabled=true;
+  try{ if(authMode==='signup')await createUserWithEmailAndPassword(auth,email,pass); else await signInWithEmailAndPassword(auth,email,pass); }
+  catch(e){showAuthErr(authError(e.code));}
+  $('au_submit').disabled=false;
+};
+window.resetPass=async function(){
+  const email=$('au_email').value.trim(); if(!email){showAuthErr('Entrez votre email puis recliquez');return}
+  try{await sendPasswordResetEmail(auth,email);toast('Email de réinitialisation envoyé');}catch(e){showAuthErr(authError(e.code));}
+};
+window.logout=()=>signOut(auth);
+function authError(c){return({'auth/invalid-email':'Email invalide','auth/user-not-found':'Compte introuvable','auth/wrong-password':'Mot de passe incorrect','auth/invalid-credential':'Identifiants incorrects','auth/email-already-in-use':'Cet email a déjà un compte','auth/weak-password':'Mot de passe trop court (6 caractères min.)'}[c]||'Erreur : '+c)}
+
+/* ============================================================
+   PHARMACIE — liste
+   ============================================================ */
+async function loadClients(){
+  const snap=await getDocs(collection(db,'patients'));
+  clients=snap.docs.map(d=>({id:d.id,...d.data()}));
+  for(const c of clients){
+    const cs=await getDocs(query(collection(db,'patients',c.id,'consultations'),orderBy('date','asc')));
+    c._consults=cs.docs.map(d=>({id:d.id,...d.data()}));
+    const lg=await getDocs(collection(db,'patients',c.id,'selflogs'));
+    c._logs=lg.docs.map(d=>({id:d.id,...d.data()}));
+    c._tl=timeline(c,c._consults,c._logs);
+    c._analyse=analyseMois(c._tl);
+  }
+  renderList();
+}
+window.renderList=function(){
+  const q=($('searchInput').value||'').toLowerCase();
+  const list=clients.filter(c=>(c.nom+' '+c.prenom).toLowerCase().includes(q)).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+  const grid=$('clientGrid');
+  if(list.length===0){grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><div>${clients.length===0?'Aucun patient. Cliquez sur « Nouveau patient ».':'Aucun résultat.'}</div></div>`;return;}
+  grid.innerHTML=list.map(c=>{
+    const cw=currentW(c._tl)??c.poids0, d=cw-c.poids0;
+    const cls=d<-0.05?'delta-down':d>0.05?'delta-up':'flat';
+    const dt=d<-0.05?`▼ ${Math.abs(d).toFixed(1)} kg`:d>0.05?`▲ ${d.toFixed(1)} kg`:'± 0';
+    const nc=(c._consults||[]).length;
+    const last=(c._consults||[])[c._consults.length-1];
+    const plateau=c._analyse&&c._analyse.status==='plateau';
+    return `<div class="card client-card" onclick="openDetail('${c.id}')">
+      <div class="name">${esc(c.prenom)} ${esc(c.nom)}</div>
+      <div class="meta">Début ${fmtDate(c.debut)} · ${nc} consultation${nc>1?'s':''}</div>
+      <div class="pill-row"><span class="pill ${cls}">${dt}</span><span class="pill flat tnum">${cw.toFixed(1)} kg</span>${last&&last.dose?`<span class="pill">${last.dose}</span>`:''}${plateau?`<span class="pill plateau">⚠ plateau</span>`:''}</div>
+    </div>`;
+  }).join('');
+};
+
+/* ============================================================
+   MODAL PATIENT + création accès
+   ============================================================ */
+window.openClientModal=function(id){
+  ['c_nom','c_prenom','c_email','c_tel','c_naissance','c_taille','c_medecin','c_debut','c_poids0','c_objectif'].forEach(k=>$(k).value='');
+  $('c_sexe').value=''; $('c_consent').checked=false; $('c_id').value='';
+  if(id){
+    const c=clients.find(x=>x.id===id);
+    $('clientModalTitle').textContent='Modifier le patient'; $('c_id').value=c.id;
+    $('c_nom').value=c.nom;$('c_prenom').value=c.prenom;$('c_email').value=c.email||'';$('c_tel').value=c.tel||'';
+    $('c_naissance').value=c.naissance||'';$('c_sexe').value=c.sexe||'';$('c_taille').value=c.taille||'';$('c_medecin').value=c.medecin||'';
+    $('c_debut').value=c.debut||'';$('c_poids0').value=c.poids0;$('c_objectif').value=c.objectif||'';$('c_consent').checked=!!c.consent;
+    $('c_accessBlock').classList.add('hidden');
+  }else{
+    $('clientModalTitle').textContent='Nouveau patient'; $('c_debut').value=new Date().toISOString().slice(0,10);
+    $('c_accessBlock').classList.remove('hidden');
+  }
+  show('clientModal');
+};
+window.saveClient=async function(){
+  const nom=$('c_nom').value.trim(),prenom=$('c_prenom').value.trim();
+  const taille=parseFloat($('c_taille').value),debut=$('c_debut').value,poids0=parseFloat($('c_poids0').value),sexe=$('c_sexe').value;
+  if(!nom||!prenom){toast('Nom et prénom requis');return}
+  if(!sexe){toast('Sexe requis (pour les conseils adaptés)');return}
+  if(!taille){toast('Taille requise (IMC)');return}
+  if(!debut||isNaN(poids0)){toast('Date de début et poids initial requis');return}
+  const id=$('c_id').value;
+  const data={nom,prenom,email:$('c_email').value.trim(),tel:$('c_tel').value.trim(),naissance:$('c_naissance').value,
+    sexe,taille,medecin:$('c_medecin').value.trim(),debut,poids0,objectif:parseFloat($('c_objectif').value)||null,
+    consent:$('c_consent').checked,updatedAt:Date.now()};
+  $('c_saveBtn').disabled=true;
+  try{
+    if(id){await updateDoc(doc(db,'patients',id),data);toast('Patient mis à jour');closeModal('clientModal');await loadClients();if(currentClient&&currentClient.id===id)await openDetail(id);}
+    else{
+      const email=data.email; if(!email){toast('Email requis pour l\'accès patient');$('c_saveBtn').disabled=false;return}
+      const pass=genPass();
+      const secApp=initializeApp(firebaseConfig,'sec-'+Date.now());const secAuth=getAuth(secApp);let uid;
+      try{const cred=await createUserWithEmailAndPassword(secAuth,email,pass);uid=cred.user.uid;await signOut(secAuth);}finally{await deleteApp(secApp);}
+      data.createdBy=me.uid;data.createdAt=Date.now();
+      await setDoc(doc(db,'patients',uid),data);
+      closeModal('clientModal');$('cred_email').textContent=email;$('cred_pass').textContent=pass;show('credModal');await loadClients();
+    }
+  }catch(e){ if(e.code==='auth/email-already-in-use')toast('Cet email a déjà un accès.');else toast('Erreur : '+(e.code||e.message)); }
+  $('c_saveBtn').disabled=false;
+};
+window.deleteClient=async function(id){
+  if(!confirm('Supprimer la fiche ? (le compte de connexion se supprime dans la console Firebase)'))return;
+  for(const sub of ['consultations','selflogs']){const s=await getDocs(collection(db,'patients',id,sub));for(const d of s.docs)await deleteDoc(doc(db,'patients',id,sub,d.id));}
+  await deleteDoc(doc(db,'patients',id)); toast('Fiche supprimée'); backToList(); await loadClients();
+};
+
+/* ============================================================
+   VUE DÉTAIL
+   ============================================================ */
+window.openDetail=async function(id){
+  let c; if(isStaff){c=clients.find(x=>x.id===id)||{id,...(await getDoc(doc(db,'patients',id))).data()};} else {c=myPatient;}
+  currentClient=c;
+  currentConsults=(await getDocs(query(collection(db,'patients',id,'consultations'),orderBy('date','asc')))).docs.map(d=>({id:d.id,...d.data()}));
+  currentLogs=(await getDocs(collection(db,'patients',id,'selflogs'))).docs.map(d=>({id:d.id,...d.data()}));
+  const tl=timeline(c,currentConsults,currentLogs);
+  const cw=currentW(tl)??c.poids0, d=cw-c.poids0;
+  const imcNow=imc(cw,c.taille), imc0=imc(c.poids0,c.taille);
+  const last=currentConsults[currentConsults.length-1]||null;
+  const analyse=analyseMois(tl);
+  const a=ageOf(c.naissance);
+
+  let alerts='';
+  if(last&&last.operationPrevue)alerts+=`<div class="alert-banner amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg><span><b>Intervention prévue :</b> ${esc(last.operationDetail||'non précisée')}. ${isStaff?'Risque anesthésique — informer l\'anesthésiste.':'Signale ton traitement à ton médecin/anesthésiste avant toute intervention.'}</span></div>`;
+  if(isStaff){
+    const sev=last&&last.effets?Object.entries(last.effets).filter(([k,v])=>v==='severe').map(([k])=>k):[];
+    if(sev.length)alerts+=`<div class="alert-banner red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span><b>Effet(s) sévère(s) :</b> ${sev.join(', ')}. Évaluer une orientation médicale.</span></div>`;
+    if(analyse.status==='plateau')alerts+=`<div class="alert-banner amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18"/></svg><span><b>Plateau détecté</b> (~4 sem. sans perte). À réévaluer avec le patient / le prescripteur (tolérance, observance, palier).</span></div>`;
+    // effets auto-déclarés récents par le patient
+    const rep=currentLogs.filter(l=>l.type==='effets').sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+    if(rep&&rep.effets&&rep.effets.length)alerts+=`<div class="alert-banner info"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16v-4M12 8h.01"/><circle cx="12" cy="12" r="10"/></svg><span><b>Le patient signale (${fmtDate(rep.date)}) :</b> ${rep.effets.map(esc).join(', ')}.</span></div>`;
+  }
+
+  const head=`
+    ${isStaff?`<a class="back no-print" onclick="backToList()">← Tous les patients</a>`:''}
+    <div class="detail-head">
+      <div><div class="name">${esc(c.prenom)} ${esc(c.nom)}</div>
+        <div class="info">${a!=null?a+' ans · ':''}${c.sexe==='F'?'Femme · ':c.sexe==='H'?'Homme · ':''}${c.taille} cm · Début ${fmtDate(c.debut)}${c.medecin?' · Dr '+esc(c.medecin):''}
+        ${isStaff?`<br>${c.email?'✉ '+esc(c.email):''}${c.tel?' · ☎ '+esc(c.tel):''}${c.consent?'':' · <span style="color:var(--alert)">⚠ consentement non coché</span>'}`:''}</div></div>
+      <div class="detail-actions no-print">
+        ${isStaff?`<button class="btn sec sm" onclick="openClientModal('${c.id}')">Modifier</button>`:''}
+        <button class="btn sec sm" onclick="window.print()">Imprimer / PDF</button>
+        ${isStaff?`<button class="btn danger sm" onclick="deleteClient('${c.id}')">Supprimer</button>`:''}
+      </div></div>`;
+
+  const stats=`<div class="stats">
+      <div class="card stat"><div class="label">Poids initial</div><div class="val tnum">${c.poids0.toFixed(1)}<small> kg</small></div></div>
+      <div class="card stat"><div class="label">Poids actuel</div><div class="val tnum">${cw.toFixed(1)}<small> kg</small></div>
+        <div class="ann ${d<-0.05?'down':d>0.05?'up':'neutral'}">${d<-0.05?'▼ '+Math.abs(d).toFixed(1)+' kg':d>0.05?'▲ '+d.toFixed(1)+' kg':'± 0'}${c.poids0>0?' ('+(d/c.poids0*100).toFixed(1)+'%)':''}</div></div>
+      <div class="card stat"><div class="label">IMC actuel</div><div class="val tnum">${imcNow?imcNow.toFixed(1):'—'}</div>${imc0&&imcNow?`<div class="ann ${imcNow<imc0?'down':'neutral'}">départ ${imc0.toFixed(1)}</div>`:''}</div>
+      ${c.objectif?`<div class="card stat"><div class="label">Objectif</div><div class="val tnum">${c.objectif.toFixed(1)}<small> kg</small></div><div class="ann neutral">${(cw-c.objectif).toFixed(1)} kg restants</div></div>`:''}
+    </div>`;
+  const charts=`<div class="charts">
+      <div class="card chart-card"><h3>Évolution du poids (kg)</h3><div class="chart-wrap"><canvas id="chPoids"></canvas></div></div>
+      <div class="card chart-card"><h3>Évolution de l'IMC</h3><div class="chart-wrap"><canvas id="chIMC"></canvas></div></div>
+    </div>`;
+
+  let patientBlocks='';
+  if(!isStaff){
+    const lastSelf=currentLogs.filter(l=>l.type==='poids').sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+    patientBlocks=`
+      <div class="alert-banner info"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Bonjour ${esc(c.prenom)} 👋 En cas d'effet gênant, parle-en à ton pharmacien ou ton médecin. Une pesée par semaine suffit.</span></div>
+
+      <div class="card p-card">
+        <h3>Ma pesée de la semaine</h3>
+        <p class="lead">${lastSelf?'Dernière pesée notée : '+fmtDate(lastSelf.date)+' — '+lastSelf.poids.toFixed(1)+' kg':'Note ton poids pour suivre ton évolution.'}</p>
+        <div class="weigh-row">
+          <div class="field"><label class="fl">Date</label><input class="f" id="pw_date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+          <div class="field"><label class="fl">Poids (kg)</label><input class="f" id="pw_poids" type="number" step="0.1" placeholder="ex : 88.4"></div>
+          <button class="btn" id="pw_btn" onclick="savePesee()">Enregistrer</button>
+        </div>
+      </div>
+
+      <div class="card p-card">
+        <h3>Mon bilan du mois</h3>
+        <div class="bilan-box ${analyse.status}"><span class="bt">${analyse.status==='good'?'📉 Tu progresses':analyse.status==='plateau'?'⏸ Palier':analyse.status==='gain'?'↗ Reprise':'⏳ En cours'}</span>${analyse.msg}</div>
+      </div>
+
+      <div class="card p-card">
+        <h3>Mes effets secondaires</h3>
+        <p class="lead">Coche ce que tu ressens : je te propose des solutions. Tu peux les envoyer à ta pharmacie.</p>
+        <div class="chk-grid" id="pe_grid">
+          ${EFFETS.map(e=>`<label class="chk"><input type="checkbox" value="${esc(e)}" onchange="onEffetToggle()"><span><span class="c-name">${e}</span></span></label>`).join('')}
+        </div>
+        <div id="pe_solutions"></div>
+        <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn sec" id="pe_send" onclick="sendEffets()" disabled>Envoyer à ma pharmacie</button>
+        </div>
+        <div class="alert-banner red" style="margin-top:14px;margin-bottom:0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg><span>Consulte <b>sans attendre</b> en cas de douleur au ventre intense ou qui irradie dans le dos, de vomissements t'empêchant de boire, ou de signes de déshydratation.</span></div>
+      </div>
+
+      <div class="card p-card">
+        <h3>Mes conseils</h3>
+        <p class="lead">Adaptés à ton profil (IMC ${imcNow?imcNow.toFixed(1):'—'}${c.sexe?', '+(c.sexe==='F'?'femme':'homme'):''}). Conseils généraux, pas un régime prescrit.</p>
+        ${adviceHTML(imcNow,c.sexe)}
+      </div>`;
+  }
+
+  const histTitle=`<div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>${isStaff?'Consultations ('+currentConsults.length+')':'Historique'}</span>${isStaff?`<button class="btn sm add-consult-btn no-print" onclick="openConsult('${c.id}')">+ Nouvelle consultation</button>`:''}</div>`;
+
+  $('detailView').innerHTML=head+alerts+stats+charts+patientBlocks+histTitle+`<div id="consultList">${renderHistory(c)}</div>`;
+  setTimeout(()=>drawCharts(tl,c),30);
+};
+
+function adviceHTML(imcNow,sexe){
+  const homme=sexe==='H';
+  let sport;
+  if(!imcNow) sport=`<ul><li>Vise environ 150 min d'activité modérée par semaine (marche rapide, vélo, natation).</li><li>Ajoute du <b>renforcement musculaire 2×/semaine</b> — essentiel pour ne pas perdre de muscle pendant la perte de poids.</li></ul>`;
+  else if(imcNow>=30) sport=`<ul><li><b>Privilégie le faible impact</b> pour protéger tes articulations : marche, vélo, natation, aquagym, vélo elliptique.</li><li>Commence doucement : 20–30 min, 3 à 5×/semaine, et augmente progressivement.</li><li>Ajoute du <b>renforcement musculaire 2×/semaine</b> (élastiques, poids légers) pour préserver le muscle.</li>${homme?'<li>Tu peux mettre un peu plus de volume sur le renforcement (masse musculaire de départ plus élevée).</li>':'<li>Le renforcement est aussi précieux pour la densité osseuse — n\'hésite pas.</li>'}</ul>`;
+  else if(imcNow>=25) sport=`<ul><li>Cardio modéré : marche rapide, vélo, natation — vise ~150 min/semaine.</li><li><b>Renforcement musculaire 2 à 3×/semaine</b> pour tonifier et protéger ta masse musculaire.</li>${homme?'<li>Bon moment pour structurer un vrai programme de résistance.</li>':'<li>Alterne cardio et renforcement selon tes envies.</li>'}</ul>`;
+  else sport=`<ul><li>Tu es dans une zone d'IMC saine : objectif <b>maintien et tonicité</b>.</li><li>Garde une activité qui te plaît + du renforcement musculaire régulier.</li></ul>`;
+
+  const nut=`<ul>
+    <li><b>Des protéines à chaque repas</b> (œufs, poisson, volaille, laitages, légumineuses, tofu) — clé pour garder ton muscle pendant la perte. Vise un bon apport, autour de 1,2–1,6 g par kg de poids et par jour.</li>
+    <li><b>Bois suffisamment</b> (~1,5–2 L/jour) : ça limite nausées et constipation, et on a tendance à moins boire sous traitement.</li>
+    <li><b>Des fibres</b> (légumes, fruits, céréales complètes) pour le transit.</li>
+    <li><b>Mange lentement, en petites portions</b> : la satiété arrive vite. Ne force pas.</li>
+    <li><b>Évite les repas très gras/frits et très sucrés</b> : ils aggravent souvent les nausées.</li>
+    <li><b>Ne saute pas de repas</b>, même sans faim : mieux vaut peu mais régulier, pour éviter carences et fonte musculaire.</li>
+    ${homme?'<li>Besoins en protéines souvent un peu plus élevés en valeur absolue — vise le haut de la fourchette.</li>':'<li>Pense au fer (viande maigre, légumineuses, légumes verts), utile notamment en cas de règles abondantes.</li>'}
+  </ul>`;
+
+  return `<details class="advice"><summary>🥗 Nutrition <span class="chev">›</span></summary><div class="ac">${nut}</div></details>
+    <details class="advice"><summary>🏃 Activité physique adaptée <span class="chev">›</span></summary><div class="ac">${sport}</div></details>`;
+}
+
+function renderHistory(c){
+  // Fusionne consultations (pharma) + logs patient dans un fil daté
+  const items=[];
+  currentConsults.forEach(cn=>items.push({kind:'consult',date:cn.date,data:cn}));
+  currentLogs.forEach(l=>items.push({kind:l.type==='effets'?'effets':'pesee',date:l.date,data:l}));
+  items.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(items.length===0)return`<div class="card" style="padding:24px;text-align:center;color:var(--muted)">Rien pour le moment.</div>`;
+  return items.map(it=>{
+    if(it.kind==='pesee')return `<div class="card consult"><div class="consult-head"><div class="consult-date">${fmtDate(it.date)}</div><div style="display:flex;align-items:center;gap:10px"><span class="consult-poids tnum">${it.data.poids.toFixed(1)} kg</span><span class="tag self">pesée patient</span>${isStaff?`<button class="icon-btn no-print" onclick="deleteLog('${c.id}','${it.data.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>`:''}</div></div></div>`;
+    if(it.kind==='effets')return `<div class="card consult"><div class="consult-head"><div class="consult-date">${fmtDate(it.date)}</div><span class="tag self">effets signalés</span></div><div style="margin-top:10px">${(it.data.effets||[]).map(e=>`<span class="tag modere">${esc(e)}</span>`).join('')}</div></div>`;
+    const cn=it.data;
+    const effets=cn.effets?Object.entries(cn.effets).filter(([k,v])=>v&&v!=='aucun'):[];
+    const compls=cn.complements||[];
+    return `<div class="card consult">
+      <div class="consult-head"><div class="consult-date">${fmtDate(cn.date)} ${isStaff?'':'<span class="tag compl" style="margin-left:6px">pharmacie</span>'}</div>
+        <div style="display:flex;align-items:center;gap:12px"><span class="consult-poids tnum">${cn.poids!=null?cn.poids.toFixed(1)+' kg':''}</span>${cn.dose?`<span class="tag compl">${cn.dose}</span>`:''}
+        ${isStaff?`<span class="consult-actions no-print"><button class="icon-btn" onclick="openConsult('${c.id}','${cn.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" onclick="deleteConsult('${c.id}','${cn.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button></span>`:''}</div></div>
+      <div class="consult-body">
+        <div>${effets.length?`<div class="kv"><div class="k">Effets secondaires</div>${effets.map(([k,v])=>`<span class="tag ${v}">${k}${v!=='leger'?' · '+v:''}</span>`).join('')}</div>`:''}
+          ${compls.length?`<div class="kv" style="margin-top:10px"><div class="k">Compléments</div>${compls.map(x=>`<span class="tag compl">${esc(x)}</span>`).join('')}</div>`:''}
+          ${cn.operationPrevue?`<div class="kv" style="margin-top:10px"><div class="k">Intervention</div><span class="tag modere">⚠ ${esc(cn.operationDetail||'prévue')}</span></div>`:''}</div>
+        <div>${cn.bilan?`<div class="kv"><div class="k">Bilan alimentaire</div>${esc(cn.bilan)}</div>`:''}
+          ${cn.notes&&isStaff?`<div class="kv" style="margin-top:10px"><div class="k">Notes pharmacien</div>${esc(cn.notes)}</div>`:''}</div>
+      </div></div>`;
+  }).join('');
+}
+
+function drawCharts(tl,c){
+  const labels=tl.map(p=>fmtDate(p.date));
+  const poids=tl.map(p=>p.poids);
+  const imcs=poids.map(p=>imc(p,c.taille));
+  const grid='#EEF1EF',tick='#5E6B66';
+  if(chartPoids)chartPoids.destroy(); if(chartIMC)chartIMC.destroy();
+  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:tick,font:{size:10}}},y:{grid:{color:grid},ticks:{color:tick,font:{size:11}}}}};
+  const ds=(arr,col)=>[{data:arr,borderColor:col,backgroundColor:col+'18',fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#fff',pointBorderColor:col,pointBorderWidth:2,borderWidth:2.5}];
+  if(!tl.length)return;
+  chartPoids=new Chart($('chPoids'),{type:'line',data:{labels,datasets:ds(poids,'#0E6B5C')},options:{...base,scales:{...base.scales,y:{...base.scales.y,suggestedMin:Math.min(...poids)-2}}}});
+  if(c.objectif){chartPoids.data.datasets.push({data:labels.map(()=>c.objectif),borderColor:'#B45309',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false});chartPoids.update();}
+  chartIMC=new Chart($('chIMC'),{type:'line',data:{labels,datasets:ds(imcs,'#0A4F44')},options:base});
+}
+
+/* ---------- Patient : pesée + effets ---------- */
+window.savePesee=async function(){
+  const date=$('pw_date').value, poids=parseFloat($('pw_poids').value);
+  if(!date||isNaN(poids)){toast('Date et poids requis');return}
+  $('pw_btn').disabled=true;
+  try{ await setDoc(doc(db,'patients',currentClient.id,'selflogs','p'+Date.now()),{type:'poids',date,poids,createdAt:Date.now()}); toast('Pesée enregistrée'); await openDetail(currentClient.id); }
+  catch(e){toast('Erreur : '+(e.code||e.message));$('pw_btn').disabled=false;}
+};
+window.onEffetToggle=function(){
+  const checked=[...document.querySelectorAll('#pe_grid input:checked')].map(i=>i.value);
+  document.querySelectorAll('#pe_grid .chk').forEach(l=>l.classList.toggle('on',l.querySelector('input').checked));
+  $('pe_send').disabled=checked.length===0;
+  $('pe_solutions').innerHTML=checked.map(e=>{
+    const s=SOLUTIONS[e]; if(!s)return'';
+    const sup=(s.sup&&s.sup.length)?`<div class="sup">${s.sup.map(x=>`<span class="tag compl">${esc(x)}</span>`).join('')}</div>`:'';
+    return `<div class="solution"><div class="se">💡 ${esc(e)}</div><p>${s.tip}</p>${sup}</div>`;
+  }).join('');
+};
+window.sendEffets=async function(){
+  const checked=[...document.querySelectorAll('#pe_grid input:checked')].map(i=>i.value);
+  if(!checked.length)return;
+  $('pe_send').disabled=true;
+  try{ await setDoc(doc(db,'patients',currentClient.id,'selflogs','e'+Date.now()),{type:'effets',date:new Date().toISOString().slice(0,10),effets:checked,createdAt:Date.now()}); toast('Envoyé à ta pharmacie ✓'); await openDetail(currentClient.id); }
+  catch(e){toast('Erreur : '+(e.code||e.message));$('pe_send').disabled=false;}
+};
+window.deleteLog=async function(cid,lid){ if(!confirm('Supprimer cette entrée ?'))return; await deleteDoc(doc(db,'patients',cid,'selflogs',lid)); await loadClients(); await openDetail(cid); };
+
+/* ---------- Consultation pharmacie ---------- */
+function buildEffets(v){$('cs_effets').innerHTML=EFFETS.map(e=>{const val=v&&v[e]||'aucun';return `<div class="effet-row"><span>${e}</span><select data-effet="${e}"><option value="aucun"${val==='aucun'?' selected':''}>Aucun</option><option value="leger"${val==='leger'?' selected':''}>Léger</option><option value="modere"${val==='modere'?' selected':''}>Modéré</option><option value="severe"${val==='severe'?' selected':''}>Sévère</option></select></div>`;}).join('');}
+function buildComplements(ch){ch=ch||[];$('cs_complements').innerHTML=COMPLEMENTS.map(c=>{const on=ch.includes(c.n);return `<label class="chk${on?' on':''}"><input type="checkbox" value="${c.n}" ${on?'checked':''} onchange="this.closest('.chk').classList.toggle('on',this.checked)"><span><span class="c-name">${c.n}</span>${c.h?`<span class="c-hint">${c.h}</span>`:''}</span></label>`;}).join('');}
+window.openConsult=function(clientId,consultId){
+  $('cs_clientId').value=clientId;$('cs_id').value=consultId||'';
+  const cn=consultId?currentConsults.find(x=>x.id===consultId):null;
+  $('consultModalTitle').textContent=cn?'Modifier la consultation':'Nouvelle consultation';
+  ['cs_poids','cs_taille','cs_bilan','cs_hygiene','cs_notes','cs_opDetail','cs_sportFreq','cs_sportType'].forEach(k=>$(k).value='');
+  const last=currentConsults[currentConsults.length-1];
+  $('cs_dose').value=cn?(cn.dose||''):(last?last.dose||'':'');
+  $('cs_date').value=cn?cn.date:new Date().toISOString().slice(0,10);
+  if(cn){$('cs_poids').value=cn.poids??'';$('cs_taille').value=cn.tourTaille||'';$('cs_bilan').value=cn.bilan||'';$('cs_hygiene').value=cn.hygiene||'';$('cs_notes').value=cn.notes||'';
+    document.querySelector(`input[name=cs_op][value=${cn.operationPrevue?'oui':'non'}]`).checked=true;$('cs_opDetail').value=cn.operationDetail||'';
+    document.querySelector(`input[name=cs_sport][value=${cn.sport==='oui'?'oui':'non'}]`).checked=true;$('cs_sportFreq').value=cn.sportFreq||'';$('cs_sportType').value=cn.sportType||'';}
+  else{document.querySelector('input[name=cs_op][value=non]').checked=true;document.querySelector('input[name=cs_sport][value=non]').checked=true;}
+  buildEffets(cn?cn.effets:null);buildComplements(cn?cn.complements:null);toggleOp();toggleSport();show('newConsultModal');
+};
+window.toggleOp=function(){const oui=document.querySelector('input[name=cs_op]:checked').value==='oui';$('cs_opDetailWrap').classList.toggle('hidden',!oui);document.querySelectorAll('#cs_opRow label').forEach(l=>l.classList.toggle('on',l.querySelector('input').checked))};
+window.toggleSport=function(){const oui=document.querySelector('input[name=cs_sport]:checked').value==='oui';$('cs_sportDetailWrap').classList.toggle('hidden',!oui);document.querySelectorAll('#cs_sportRow label').forEach(l=>l.classList.toggle('on',l.querySelector('input').checked))};
+window.saveConsult=async function(){
+  const clientId=$('cs_clientId').value, poids=parseFloat($('cs_poids').value);
+  if(!$('cs_date').value||isNaN(poids)){toast('Date et poids requis');return}
+  const effets={};document.querySelectorAll('#cs_effets select').forEach(s=>{if(s.value!=='aucun')effets[s.dataset.effet]=s.value});
+  const complements=[...document.querySelectorAll('#cs_complements input:checked')].map(i=>i.value);
+  const op=document.querySelector('input[name=cs_op]:checked').value==='oui', sport=document.querySelector('input[name=cs_sport]:checked').value;
+  const obj={date:$('cs_date').value,poids,tourTaille:$('cs_taille').value.trim(),dose:$('cs_dose').value,effets,complements,
+    operationPrevue:op,operationDetail:op?$('cs_opDetail').value.trim():'',bilan:$('cs_bilan').value.trim(),hygiene:$('cs_hygiene').value.trim(),
+    sport,sportFreq:sport==='oui'?$('cs_sportFreq').value.trim():'',sportType:sport==='oui'?$('cs_sportType').value.trim():'',notes:$('cs_notes').value.trim(),by:me.uid,updatedAt:Date.now()};
+  const id=$('cs_id').value; $('cs_saveBtn').disabled=true;
+  try{ await setDoc(doc(db,'patients',clientId,'consultations',id||('c'+Date.now())),obj); closeModal('newConsultModal'); toast('Consultation enregistrée'); await loadClients(); await openDetail(clientId); }
+  catch(e){toast('Erreur : '+(e.code||e.message));}
+  $('cs_saveBtn').disabled=false;
+};
+window.deleteConsult=async function(cid,id){ if(!confirm('Supprimer cette consultation ?'))return; await deleteDoc(doc(db,'patients',cid,'consultations',id)); toast('Supprimée'); await loadClients(); await openDetail(cid); };
+window.backToList=function(){currentClient=null;hide('detailView');show('listView');renderList()};
+window.closeModal=id=>hide(id);
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.add('hidden')}));
+</script>
+</body>
+</html>
