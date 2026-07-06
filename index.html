@@ -348,7 +348,7 @@ const firebaseConfig = {
 
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
-  signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  signOut, sendPasswordResetEmail, setPersistence, inMemoryPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs,
   query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -431,14 +431,25 @@ function analyseMois(tl){
 onAuthStateChanged(auth, async (user)=>{
   if(!user){me=null;hide('loadingScreen');hide('appScreen');show('authScreen');return;}
   me=user; show('loadingScreen'); hide('authScreen');
-  const staffSnap=await getDoc(doc(db,'staff',user.uid));
-  isStaff=staffSnap.exists(); myPatient=null;
-  if(!isStaff){const p=await getDoc(doc(db,'patients',user.uid));if(p.exists())myPatient={id:user.uid,...p.data()};}
+  // Détermination du rôle — tolérante aux erreurs pour ne JAMAIS rester bloqué sur le spinner
+  isStaff=false; myPatient=null;
+  try{ const staffSnap=await getDoc(doc(db,'staff',user.uid)); isStaff=staffSnap.exists(); }
+  catch(e){ isStaff=false; } // lecture staff refusée pour un patient : normal
+  if(!isStaff){
+    try{ const p=await getDoc(doc(db,'patients',user.uid)); if(p.exists())myPatient={id:user.uid,...p.data()}; }
+    catch(e){ myPatient=null; }
+  }
   hide('loadingScreen'); show('appScreen');
   $('rgpdNote').innerHTML='<b>⚠ Données de santé.</b> Hébergement à configurer en conformité HDS (région EEE + avenant) avant usage réel. Consentement patient obligatoire.';
-  if(isStaff){$('roleBadge').textContent='Pharmacie';hide('unlinkedView');hide('detailView');show('listView');await loadClients();}
-  else if(myPatient){$('roleBadge').textContent='Mon suivi';hide('unlinkedView');hide('listView');await openDetail(myPatient.id);}
-  else{$('roleBadge').textContent='—';hide('listView');hide('detailView');show('unlinkedView');$('myUid').textContent=user.uid;}
+  try{
+    if(isStaff){$('roleBadge').textContent='Pharmacie';hide('unlinkedView');hide('detailView');show('listView');await loadClients();}
+    else if(myPatient){$('roleBadge').textContent='Mon suivi';hide('unlinkedView');hide('listView');await openDetail(myPatient.id);}
+    else{$('roleBadge').textContent='—';hide('listView');hide('detailView');show('unlinkedView');$('myUid').textContent=user.uid;}
+  }catch(e){
+    // en dernier recours, on n'affiche jamais un écran vide qui tourne
+    hide('listView');hide('detailView');show('unlinkedView');$('myUid').textContent=user.uid;
+    toast('Erreur de chargement : '+(e.code||e.message));
+  }
 });
 function showAuthErr(m){const e=$('authErr');e.textContent=m;e.classList.remove('hidden')}
 window.toggleAuthMode=function(){
@@ -537,7 +548,7 @@ window.saveClient=async function(){
       const email=data.email; if(!email){toast('Email requis pour l\'accès patient');$('c_saveBtn').disabled=false;return}
       const pass=genPass();
       const secApp=initializeApp(firebaseConfig,'sec-'+Date.now());const secAuth=getAuth(secApp);let uid;
-      try{const cred=await createUserWithEmailAndPassword(secAuth,email,pass);uid=cred.user.uid;await signOut(secAuth);}finally{await deleteApp(secApp);}
+      try{await setPersistence(secAuth,inMemoryPersistence);const cred=await createUserWithEmailAndPassword(secAuth,email,pass);uid=cred.user.uid;await signOut(secAuth);}finally{await deleteApp(secApp);}
       data.createdBy=me.uid;data.createdAt=Date.now();
       await setDoc(doc(db,'patients',uid),data);
       closeModal('clientModal');$('cred_email').textContent=email;$('cred_pass').textContent=pass;show('credModal');await loadClients();
